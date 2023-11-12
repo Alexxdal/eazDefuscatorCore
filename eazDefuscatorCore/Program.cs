@@ -22,10 +22,31 @@ namespace eazDefuscatorCore
 
             MethodDef DecryptMethod = null;
             MethodDef ActualDecryptMethod = null;
-            MethodDef EntryPointMethod = null;
-            ModuleContext modCtx = ModuleDef.CreateModuleContext();
-            Assembly assembly = Assembly.LoadFrom(args[0]);
+            Assembly assembly = null;
+            try
+            {
+                assembly = Assembly.LoadFrom(args[0]);
+            }
+            catch (BadImageFormatException)
+            {
+                Console.WriteLine("Not a NET module.");
+                Console.Read();
+                return;
+            }
+            catch (FileLoadException)
+            {
+                Console.WriteLine("Cant load file.");
+                Console.Read();
+                return;
+            }
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine("File not found.");
+                Console.Read();
+                return;
+            }
             AssemblyName[] dllRef = assembly.GetReferencedAssemblies();
+            ModuleContext modCtx = ModuleDef.CreateModuleContext();
             ModuleDefMD module = ModuleDefMD.Load(args[0], modCtx);
 
 
@@ -80,28 +101,15 @@ namespace eazDefuscatorCore
                     {
                         Int32 value = (Int32)method.Body.Instructions[i - 1].Operand;
                         String decryptedString = (String)assembly.GetModules()[0].ResolveMethod(ActualDecryptMethod.MDToken.ToInt32()).Invoke(null, new object[] { value, false });
-                        //Skip strings
-                        if( decryptedString.Contains("JwO4cdgtDQqFRxDm1Y+RsohhQVSYpAvt3KN7lGyXqudrmA5HSBpIlMyBLhSmC6FMbSEa/oScLJxutw61mX2/uAw="))
-                        {
-                            Console.WriteLine("String skipped");
-                        }
-                        else if( decryptedString.Contains("5aaca7077d48427c7aba6eeb94f4d811") )
-                        {
-                            Console.WriteLine("String skipped");
-                        }
-                        else
-                        {
-                            //Patch
-                            method.Body.Instructions[i - 1].OpCode = OpCodes.Ldstr;
-                            method.Body.Instructions[i - 1].Operand = decryptedString;
-                            instruction.OpCode = OpCodes.Nop;
-                        }
+                        //Patch
+                        method.Body.Instructions[i - 1].OpCode = OpCodes.Ldstr;
+                        method.Body.Instructions[i - 1].Operand = decryptedString;
+                        instruction.OpCode = OpCodes.Nop;
                         File.AppendAllText(args[0] + "_strings.txt", decryptedString + "\n");
                     }
                 }
             }
             Console.WriteLine("String decrypted");
-
 
             ModuleWriterOptions opt = new ModuleWriterOptions(module);
             opt.MetadataOptions.Flags |= MetadataFlags.KeepOldMaxStack;
