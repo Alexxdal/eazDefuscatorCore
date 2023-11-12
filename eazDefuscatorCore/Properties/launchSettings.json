@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "eazDefuscatorCore": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Users\\Alex\\Desktop\\backup\\FWinForms.dll"
+    }
+  }
+}
